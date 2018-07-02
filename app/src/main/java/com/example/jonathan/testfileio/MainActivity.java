@@ -1,23 +1,17 @@
 package com.example.jonathan.testfileio;
 
+import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 
 public class MainActivity extends AppCompatActivity {
   private static final String TAG = MainActivity.class.getSimpleName();
-
-  private static final String FILE1_NAME = "file1.txt";
-  private static final String FILE2_NAME = "file2.txt";
-  private static final String CONTENT_TO_WRITE = "12345";
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -26,74 +20,71 @@ public class MainActivity extends AppCompatActivity {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
 
-    try {
-      testFileIO();
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+    testFileIO("testFile1.txt", "testFile2.txt", "testFileIO");
 
     Log.v(TAG, "onCreate: end");
   }
 
-  public void testFileIO() throws IOException {
-    Log.d(TAG, "testFileIO");
-
-    File parentDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-    if (parentDir.exists()) {
-      // Do nothing
-    } else {
-      parentDir.mkdirs();
-    }
-
-    File file1 = new File(parentDir, FILE1_NAME);
-    if (file1.exists()) {
-      file1.delete();
-    }
-
-    File file2 = new File(parentDir, FILE2_NAME);
-    if (file2.exists()) {
-      file2.delete();
-    }
+  public void testFileIO(final String file1Name, final String file2Name, final String fileContent) {
+    Log.d(TAG, "testFileIO: fil1Name=[" + file1Name + "], file2Name=[" + file2Name + "], fileContent=[" + fileContent + "]");
 
     try {
+      // This line is required for AOSP:
+      //JZ Environment.setUserRequired(false);
+
+      File parentDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+      if (!parentDir.exists()) {
+        boolean dirCreated = parentDir.mkdirs();
+        Log.w(TAG, "testFileIO: parentDir=[" + parentDir.getPath() + "] did not exist. dirCreate=[" + dirCreated + "]");
+      }
+
+      File file1 = new File(parentDir, file1Name);
+      if (file1.exists()) {
+        boolean file1Deleted = file1.delete();
+        Log.w(TAG, "testFileIO: file1=[" + file1.getPath() + "] existed. file1Deleted=[" + file1Deleted + "]");
+      }
+
+      File file2 = new File(parentDir, file2Name);
+      if (file2.exists()) {
+        boolean file2Deleted = file2.delete();
+        Log.w(TAG, "testFileIO: file2=[" + file2.getPath() + "] existed. file2Deleted=[" + file2Deleted + "]");
+      }
+
+      // Create file1:
+
       FileOutputStream fos1 = new FileOutputStream(file1, false);
 
-      try {
-        String contentToWrite = CONTENT_TO_WRITE;
-        byte[] contentBytes = contentToWrite.getBytes();
-        fos1.write(contentBytes);
-        fos1.flush();
-        fos1.close();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
+      byte[] contentBytes = fileContent.getBytes();
+      fos1.write(contentBytes);
+      fos1.flush();
+      fos1.close();
+
+      // Copy file1 to file2:
 
       FileInputStream fis1 = new FileInputStream(file1);
-
-      int content = -1;
-      while ((content = fis1.read()) != -1) {
-        // convert to char and display it
-        Log.v(TAG, "testFileIO: content=[" + (char) content + "]");
-      }
-
       FileOutputStream fos2 = new FileOutputStream(file2, false);
 
-      try {
-        String contentRead = String.valueOf((char)content);
-        byte[] contentReadBytes = contentRead.getBytes();
+      int len;
+      byte[] buffer = new byte[1024];
 
-        fos2.write(contentReadBytes);
-        fos2.flush();
-        fos2.close();
-      } catch (IOException e) {
-        e.printStackTrace();
+      while ((len = fis1.read(buffer)) != -1) {
+        fos2.write(buffer, 0, len);
       }
 
-    } catch (FileNotFoundException e) {
+      fos2.flush();
+      fos2.close();
+      fis1.close();
+
+      // Check results:
+
+      Log.v(TAG, "testFileIO: file1.path=[" + file1.getPath() + "]");
+      Log.v(TAG, "testFileIO: file1.length=[" + file1.length() + "]");
+      Log.v(TAG, "testFileIO: file2.path=[" + file2.getPath() + "]");
+      Log.v(TAG, "testFileIO: file2.length=[" + file2.length() + "]");
+    } catch (IOException e){
       e.printStackTrace();
     }
 
     Log.v(TAG, "testFileIO: end");
   }
-
 }
