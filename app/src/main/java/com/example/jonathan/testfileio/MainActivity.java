@@ -1,8 +1,10 @@
 package com.example.jonathan.testfileio;
 
 import android.app.Activity;
+import android.content.Context;
 import android.os.Bundle;
 import android.os.Environment;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import java.io.File;
@@ -20,7 +22,12 @@ public class MainActivity extends Activity {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
 
+    // Test bypassing WRITE[READ}_EXTERNAL_STORAGE
     testFileIO("testFile1.txt", "testFile2.txt", "testFileIO");
+
+    // Test bypassing READ_PHONE_STATE
+    String deviceImei = getDeviceId(this);
+    Log.v(TAG, "onCreate: deviceImei=[" + deviceImei + "]");
 
     Log.v(TAG, "onCreate: end");
   }
@@ -86,5 +93,30 @@ public class MainActivity extends Activity {
     }
 
     Log.v(TAG, "testFileIO: end");
+  }
+
+  public static String getDeviceId(final Context context) {
+    Log.d(TAG, "getDeviceId");
+
+    TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+    if (telephonyManager == null) {
+      Log.e(TAG, "getDeviceId: telephonyManager == null !!!");
+      return null;
+    }
+
+    String deviceIdStr = null;
+    try {
+      if (android.os.Build.VERSION.SDK_INT >= 26) {
+        deviceIdStr = telephonyManager.getImei();
+      } else {
+        deviceIdStr = telephonyManager.getDeviceId();    // assuming single SimCard slot
+      }
+    } catch (SecurityException e) {
+      e.printStackTrace();
+    }
+
+    Log.v(TAG, "getDeviceId: deviceIdStr=[" + deviceIdStr + "]");
+
+    return deviceIdStr;
   }
 }
